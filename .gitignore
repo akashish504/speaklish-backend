@@ -1,0 +1,18 @@
+# Ignore Dockerfile
+Dockerfile
+
+# Ignore Python cache files
+__pycache__/
+
+# Ignore Python virtual environment directory
+.venv/
+
+# Other common ignores
+.env
+*.log
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+uploads/
