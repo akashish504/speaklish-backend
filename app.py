@@ -4,6 +4,7 @@ from flask_cors import CORS
 import whisper
 import os
 import openai
+import time
 
 app = Flask(__name__)
 CORS(app)
@@ -12,20 +13,29 @@ CORS(app)
 openai.api_key = os.getenv('OPENAI_API_KEY')  # Replace with your OpenAI API key
 
 def convert_to_wav(input_file, output_file):
-    command = ['ffmpeg', '-i', input_file, '-ar', '16000', '-ac', '1', output_file]
+    start_time = time.time()
+    command = ['ffmpeg', '-i', input_file, '-ar', '12000', '-ac', '1', '-b:a', '16k', output_file]
     subprocess.run(command, check=True)
+    elapsed_time = time.time() - start_time
+    print("time to convert file ", elapsed_time)
 
 def transcribe_audio(audio_path):
-    model = whisper.load_model("base")
+    start_time = time.time()
+    model = whisper.load_model("medium")
     result = model.transcribe(audio_path)
+    elapsed_time = time.time() - start_time
+    print("time to transcribe audio ", elapsed_time)
     return result['text']
 
 def get_chatgpt_response(prompt):
+    start_time = time.time()
     stream = openai.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
         stream=False,
     )
+    elapsed_time = time.time() - start_time
+    print("time to get gpt response ", elapsed_time)
     return stream.choices[0].message.content
 
 @app.route('/transcribe', methods=['POST'])
