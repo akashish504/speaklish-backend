@@ -21,7 +21,8 @@ def convert_to_wav(input_file, output_file):
 
 def transcribe_audio(audio_path):
     start_time = time.time()
-    model = whisper.load_model("medium")
+    whisper_model = os.getenv('WHISPER_MODEL')
+    model = whisper.load_model(whisper_model)
     result = model.transcribe(audio_path)
     elapsed_time = time.time() - start_time
     print("time to transcribe audio ", elapsed_time)
@@ -29,8 +30,9 @@ def transcribe_audio(audio_path):
 
 def get_chatgpt_response(prompt):
     start_time = time.time()
+    chat_gpt_model = os.getenv('CHATGPT_MODEL')
     stream = openai.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model=chat_gpt_model,
         messages=[{"role": "user", "content": prompt}],
         stream=False,
     )
