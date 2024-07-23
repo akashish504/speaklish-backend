@@ -5,6 +5,7 @@ import whisper
 import os
 import openai
 import time
+import ffmpeg
 from faster_whisper import WhisperModel
 
 
@@ -19,14 +20,13 @@ def convert_to_wav(input_file, output_path):
     start_time = time.time()
     if os.path.exists(output_path):
         os.remove(output_path)
-    command = ['ffmpeg', '-i', input_file, '-ar', '12000', '-ac', '1', '-b:a', '16k', output_path]
-    subprocess.run(command, check=True)
+    ffmpeg.input(input_file).output(output_path, ar='12000', ac='1', b_a='16k').run()
     elapsed_time = time.time() - start_time
     print("time to convert file ", elapsed_time)
 
 def transcribe_audio(audio_path):
     start_time = time.time()
-    faster_whisper_model = WhisperModel("small", device="cpu", compute_type="float32")
+    faster_whisper_model = WhisperModel("base", device="cpu", compute_type="float32")
     segments, _ = faster_whisper_model.transcribe(audio_path)
     segments = list(segments)
     elapsed_time = time.time() - start_time
@@ -60,9 +60,10 @@ def transcribe():
         output_path = os.path.splitext(input_path)[0] + '.wav'
         convert_to_wav(input_path, output_path)
         transcription =  transcribe_audio(output_path) 
-        os.remove(input_path)
-        os.remove(output_path)
-
+        if os.path.exists(input_path):
+            os.remove(input_path)
+        if os.path.exists(output_path):
+            os.remove(output_path)
         # Append the transcription to a predefined prompt
         predefined_text = "Can you judge my spoken english based on various parameters like grammar, use of phrases, active passive voices, direct/ indirect speeches etc. Give descriptive qualitative feedback on each parameter, in which area I can improve, as well as quantitive score out of 10?  \n\n"  # Placeholder text
         prompt = predefined_text + transcription

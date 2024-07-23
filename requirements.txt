@@ -5,3 +5,4 @@ Flask-Cors
 whisper
 openai
 faster_whisper
+ffmpeg
