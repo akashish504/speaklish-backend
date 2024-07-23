@@ -5,28 +5,33 @@ import whisper
 import os
 import openai
 import time
+from faster_whisper import WhisperModel
+
 
 app = Flask(__name__)
-CORS(app)
+# CORS(app)
+CORS(app, resources={r"/transcribe": {"origins": "https://speaklish-frontend.vercel.app"}})
 
 # Initialize OpenAI API key
 openai.api_key = os.getenv('OPENAI_API_KEY')  # Replace with your OpenAI API key
 
-def convert_to_wav(input_file, output_file):
+def convert_to_wav(input_file, output_path):
     start_time = time.time()
-    command = ['ffmpeg', '-i', input_file, '-ar', '12000', '-ac', '1', '-b:a', '16k', output_file]
+    if os.path.exists(output_path):
+        os.remove(output_path)
+    command = ['ffmpeg', '-i', input_file, '-ar', '12000', '-ac', '1', '-b:a', '16k', output_path]
     subprocess.run(command, check=True)
     elapsed_time = time.time() - start_time
     print("time to convert file ", elapsed_time)
 
 def transcribe_audio(audio_path):
     start_time = time.time()
-    whisper_model = os.getenv('WHISPER_MODEL')
-    model = whisper.load_model(whisper_model)
-    result = model.transcribe(audio_path)
+    faster_whisper_model = WhisperModel("small", device="cpu", compute_type="float32")
+    segments, _ = faster_whisper_model.transcribe(audio_path)
+    segments = list(segments)
     elapsed_time = time.time() - start_time
     print("time to transcribe audio ", elapsed_time)
-    return result['text']
+    return segments[0].text
 
 def get_chatgpt_response(prompt):
     start_time = time.time()
@@ -54,7 +59,7 @@ def transcribe():
         file.save(input_path)
         output_path = os.path.splitext(input_path)[0] + '.wav'
         convert_to_wav(input_path, output_path)
-        transcription =  transcribe_audio(output_path) #"Let me tell you something about solar system. So our solar system is one of the many bodies presented in the Milky Way. In the center of the solar system, we have sun, which is a medium-sized star. We have a total of nine planets starting from Mercury, Venus, Earth, Mars, Jupiter, Saturn, Uranus, and Neptune. Jupiter is one of the biggest planets in the solar system. Earth is one of the most unique planets in the solar system, which sustains life and has water, oxygen, and has an atmosphere which can sustain life. Yeah, that's it."
+        transcription =  transcribe_audio(output_path) 
         os.remove(input_path)
         os.remove(output_path)
 
@@ -65,7 +70,7 @@ def transcribe():
         # Get response from OpenAI GPT-3
         chatgpt_response = get_chatgpt_response(prompt)
 
-        return jsonify(transcription=transcription, chatgpt_response=chatgpt_response)
+        return jsonify(transcription=transcription, chatgpt_response=chatgpt_response), 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
